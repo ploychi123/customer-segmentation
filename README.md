@@ -42,6 +42,15 @@ Monetary (M): มูลค่ารวมของการซื้อสิน
 
 การวิเคราะห์นี้จะให้คะแนน (score) แต่ละลูกค้าในแต่ละปัจจัย เพื่อจัดกลุ่มลูกค้าออกเป็นกลุ่มต่าง ๆ ตามความสำคัญหรือคุณค่าที่ลูกค้าก่อให้เกิดกับธุรกิจ โดยช่วยให้ธุรกิจสามารถวางกลยุทธ์ทางการตลาดได้ตรงกลุ่มเป้าหมาย เช่น การออกโปรโมชั่น หรือการสื่อสารเฉพาะกลุ่มลูกค้าที่สำคัญ มุ่งเน้นใช้ทรัพยากรอย่างมีประสิทธิภาพ และรักษาฐานลูกค้าที่มีมูลค่าสูงไว้ได้ดีขึ้น
 
+dataset นี้ ไม่มีข้อมูลวันที่ซื้อ (Purchase Date/InvoiceDate) → ทำ RFM มาตรฐานแท้ ๆ ไม่ได้
+แต่สามารถทำ Pseudo-RFM โดยใช้ตัวแปรที่ dataset มีดังนี้:
+
+Monetary (M) → Purchase Amount (USD) → รวมมูลค่าซื้อ
+
+Frequency (F) → Previous Purchases → จำนวนครั้งที่เคยซื้อ
+
+Recency (R - Proxy) → Frequency of Purchases (Weekly, Monthly …) → map เป็นตัวเลข
+
 ```python
 # Map "Frequency of Purchases" → Recency Proxy
 freq_map = {
@@ -55,4 +64,23 @@ freq_map = {
 }
 df["Recency Proxy"] = df["Frequency of Purchases"].map(freq_map)
 ```
-เนื่องจาก
+จะได้ตัวเลขที่แทนความถี่ในการซื้อ ยิ่งค่าน้อย ยิ่งมีความถี่มาก
+
+```python
+# Feature Engineering
+# RFM features (Recency, Frequency, Monetary)
+rfm_pseudo = df.groupby("Customer ID").agg({
+    "Purchase Amount (USD)": "sum", #Monetary ลูกค้าใช้เงินเท่าไร
+    "Previous Purchases": "max" , #Frequency ลูกค้าซื้อกี่ครั้ง ภายในช่วงเวลาที่กำหนด
+    "Recency Proxy": "min" #Recency Proxy ลูกค้าซื้อครั้งล่าสุดห่างจากปัจจุบันกี่วัน/สัปดาห์/เดือน
+}).reset_index()
+
+rfm_pseudo.rename(columns={
+    "Purchase Amount (USD)": "Monetary",
+    "Previous Purchases": "Frequency",
+    "Recency Proxy": "Recency"
+}, inplace=True)
+```
+<img width="525" height="458" alt="image" src="https://github.com/user-attachments/assets/da8ff590-b433-42ee-b753-a274bab5c4f0" />
+
+เนื่องจาก Customer ID ในชุดข้อมูลนี้ไม่ซ้ำเลยจึงทำให้ได้ตาราง RFM Pseudo (Monetary, Frequency, Recency) ต่อคน เป็น 3,900 คน
