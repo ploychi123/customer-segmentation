@@ -30,6 +30,7 @@
 - Import Data
 - Missing Values check
 - Duplicate Data check
+
 พบว่าข้อมูลไม่มี Missing Values และ Duplicate data 
 
 ### 2.RFM Analysis
